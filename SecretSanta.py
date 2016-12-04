@@ -10,27 +10,35 @@ of the Secret Santa telling the person to buy the gift.
 import csv
 import copy
 import random
+import smtplib
 
 from email.mime.text import MIMEText
 from string import Template
 
 
-EMAIL_FROM = 'secret_santa@noreply.com'
+EMAIL_FROM = ''
 EMAIL_SUBJECT = 'SECRET SANTA DRAW RESULT'
-EMAIL_CONTENT = Template(
-    """Ciao $secret_santa_name, send a gift to $gift_receiver"""
+EMAIL_CONTENT_TEMPLATE = Template(
+    """
+    Ciao $secret_santa_name,
+
+    The Secret Santa draw is done!
+
+    Your assigned super-secret gift receiver is: $gift_receiver
+
+    =====
+
+    Keep it secret! This email is self generated, no one knows this except you.
+
+    The code is open sourced here: https://github.com/ciscox83/secretsanta
+
+    """
 )
 
 
 santas = {}
 receivers = {}
 associations = {}
-
-try:
-    MAIL_SERVER
-except NameError:
-    print "ERROR: You need to define the  MAIL_SERVER variable pointing to your mail server"
-    exit()
 
 
 def main():
@@ -79,15 +87,26 @@ def send_emails():
     for association in associations:
 
         email_to = santas[association]
-        print EMAIL_CONTENT.substitute(to=email_to, secret_santa_name=association, gift_receiver=associations[association])
+        email_content = EMAIL_CONTENT_TEMPLATE.substitute(
+            to=email_to,
+            secret_santa_name=association,
+            gift_receiver=associations[association])
 
-        msg = MIMEText(EMAIL_CONTENT)
+        msg = MIMEText(email_content)
         msg['Subject'] = EMAIL_SUBJECT
         msg['From'] = EMAIL_FROM
         msg['To'] = email_to
 
-        MAIL_SERVER.sendmail(EMAIL_FROM, [email_to], msg.as_string())
-        MAIL_SERVER.quit()
+        try:
+            mail_server
+            mail_server.sendmail(EMAIL_FROM, [email_to], msg.as_string())
+            mail_server.quit()
+        except NameError:
+            print """
+                    ERROR: You need to define the  MAIL_SERVER variable pointing to your mail server:
+                    e.g., smtplib.SMTP('localhost')
+                """
+            exit()
 
 if __name__ == "__main__":
     main()
